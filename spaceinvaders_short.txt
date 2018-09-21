@@ -1,10 +1,10 @@
 defineRegisters:	
 
-    mov r4,#33          //laser x and y
-    mov r5,#20
+    	mov r4,#33          //laser x and y
+    	mov r5,#20
 	mov r6,#4          //Space invader cols
 	mov r7,#3           //Space invader rows
-	mov r8,#1           //space invader direction (0 for left, 1 for right)
+	mov r8,#2           //space invader direction (0 for left, 1 for right, 2 for still)
 	mov r9,#1           //space invader x and y
 	mov r10,#3       
 	mov r11,#1          // r11 and r12 storing x and y coordinates of spaceship
@@ -12,10 +12,10 @@ defineRegisters:
 	
 
 main:
-    bl moveShip
-    bl moveInvaders
-    bl handleLasers
-    bl main
+	bl moveShip
+
+    	bl handleLasers
+    	bl main
 	halt
 	
 	
@@ -88,7 +88,7 @@ clearInvaders:
 
 moveShip:
     push {lr,r0,r1,r2,r3}
-    ldr r3,4
+    ldr r3,shipDirection
     mov r0,r11
     mov r1,r12
     bl clearPixel
@@ -97,16 +97,26 @@ moveShip:
     cmp r2,#65 // A
     bne checkForD
     mov r3,#0
-    str r3,4
+    str r3,shipDirection
 
     checkForD:
     cmp r2,#68 // D
-    bne checkDirection
+    bne checkStill
     mov r3,#1
-    str r3,4
+    str r3,shipDirection
+
+
+	checkStill:
+	cmp r2,#83 //SS 
+	bne checkDirection
+	mov r3,#2
+	str r3,shipDirection
+
+	b checkDirection	//skiping over data definition
     
-    
-    
+    shipDirection:
+	.word 1
+       
     checkDirection:
         
         cmp r3,#0
@@ -114,6 +124,9 @@ moveShip:
         
         cmp r3,#1
         beq moveShipRight
+	
+	cmp r3,#2
+	beq exitMS
 	
     moveShipRight:               
         cmp r11,#31
@@ -128,6 +141,7 @@ moveShip:
         beq exitMS
         
         sub r11,r11,#1
+	
         
     exitMS:
 	    mov r0,r11
@@ -139,81 +153,80 @@ moveShip:
         mov pc,lr
     
 moveInvaders:
-    push {lr,r0-r5,r11,r12}
-    bl clearInvaders
-    mov r12,#32
-    lsl r5,r6,#1
-    sub r5,r12,r5
+    	push {lr,r0-r5,r11,r12}
+    	bl clearInvaders
+	mov r12,#32
+    	lsl r5,r6,#1
+    	sub r5,r12,r5
         
-    cmp r9,r5  // am at the edge?
-    bne checkL       // if not nevermind
-    cmp r8,#1   // am I also moving right?
-    beq downAndLeft    // if so, move down and change direction to left
+    	cmp r9,r5  		// am at the edge?
+    	bne checkL       	// if not nevermind
+    	cmp r8,#1   	// am I also moving right?
+    	beq downAndLeft    	// if so, move down and change direction to left
     
-    checkL: 
+    	checkL: 
     
-    cmp r9,#1  // am at the left edge?
-    bne move       // if not nevermind
-    cmp r8,#0   // am I also moving left?
-    beq downAndRight    // if so, move down and change direction to right
+    	cmp r9,#1  // am at the left edge?
+    	bne move       // if not nevermind
+    	cmp r8,#0   // am I also moving left?
+    	beq downAndRight    // if so, move down and change direction to right
 
 
-    move:
+    	move:  
+    		// are we going left or right?
+    		mov r11,#55
+    		cmp r8,#0
+    		beq left
+    		bgt right
     
-    // are we going left or right?
-    mov r11,#55
-    cmp r8,#0
-    beq left
-    bgt right
+    	left:        
+        	sub r9,r9,#1
+        	bl exitMSI
     
-    left:        
-        sub r9,r9,#1
-
-        bl exitMSI
+    	right:
+       		add r9,r9,#1
+        	bl exitMSI
     
-    right:
-        add r9,r9,#1
-        bl exitMSI
-    
-    downAndLeft: 
-        add r10,r10,#1
-        mov r8,#0   // change to left
-        bl exitMSI
+    	downAndLeft: 
+        	add r10,r10,#1
+        	mov r8,#0   // change to left
+        	bl exitMSI
         
-    downAndRight:
-        add r10,r10,#1
-        mov r8,#1   // change to right
-        bl exitMSI
+    	downAndRight:
+     	   	add r10,r10,#1
+      	  	mov r8,#1   // change to right
+      	  	bl exitMSI
    
-    exitMSI:
-        bl drawInvaderGrid
-        pop {lr,r0-r5,r11,r12}
-        mov pc, lr
-
-
-
+    	exitMSI:
+    	    	bl drawInvaderGrid
+      		pop {lr,r0-r5,r11,r12}
+      	  	mov pc, lr
 
     
 handleLasers:                   //r4 = laser x, r5 = laser y
     push {lr,r0-r3}
     
-    cmp r5,#0
+    cmp r5,#0           	//if r5 != 0 then go to check shoot
     bne checkShoot
-    mov r4,#33
+        mov r0,r4
+        mov r1,r5
+        bl clearPixel
+    mov r4,#33			//if it r5 = 0 then change the location of the laser to above
     mov r5,#20
      
     checkShoot:
-        cmp r4,#33
-        bne moveLaser
+        cmp r4,#33		//if r4 is 33 then it does nothing and waits for the user to press space
+        bne moveLaser		//if it isnt 33 then laser will continue moving (go to movelaser)
             
-        inp r0,4
-        cmp r0,#32 // SPACE
+        inp r0,4		//if space was the last key pressed the laser will keep shooting after it gets to the top, eg press D then SPACE laser will shoot from ship after reaching the top
+        cmp r0,#32 // SPACE is 32
         // if space has been pressed, shoot a laser
+	
         bne moveLaser
         mov r4,r11
         
     
-    moveLaser:
+    moveLaser:			
         cmp r4,#33
         beq noLaser
         mov r0,r4
@@ -229,14 +242,11 @@ handleLasers:                   //r4 = laser x, r5 = laser y
 	    strb r3,[r2+3328]	
                      
         
-    noLaser:
-    
-    pop {lr,r0-r3}
-    mov pc, lr
+    noLaser:    
+    	pop {lr,r0-r3}
+    	mov pc, lr
 
 halt
-
-
 
 //paintScreen:			//changes all squares to the colour defined in r0
 	//push {lr,r1}
@@ -251,7 +261,6 @@ halt
 	    //strb r0,[r1+3328]
 	    //pop {lr,r1}
 	    //mov pc, lr
-
 
 
 
