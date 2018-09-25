@@ -2,18 +2,18 @@ defineRegisters:
 
     	mov r4,#33          //laser x and y
     	mov r5,#20
-	mov r6,#4          //Space invader cols
-	mov r7,#3           //Space invader rows
-	mov r8,#2           //space invader direction (0 for left, 1 for right, 2 for still)
-	mov r9,#1           //space invader x and y
-	mov r10,#3       
-	mov r11,#1          // r11 and r12 storing x and y coordinates of spaceship
-	mov r12,#20
+		mov r6,#4          //Space invader cols
+		mov r7,#3           //Space invader rows
+		mov r8,#1           //space invader direction (0 for left, 1 for right, 2 for still)
+		mov r9,#1           //space invader x and y
+		mov r10,#3       
+		mov r11,#1          // r11 and r12 storing x and y coordinates of spaceship
+		mov r12,#20
 	
 
 main:
 	bl moveShip
-
+	bl moveInvaders
     	bl handleLasers
     	bl main
 	halt
@@ -150,7 +150,7 @@ moveShip:
 	    mov r3,#55
 	    strb r3,[r2+3328]
         pop {lr,r0,r1,r2,r3}
-        mov pc,lr
+        RET
     
 moveInvaders:
     	push {lr,r0-r5,r11,r12}
