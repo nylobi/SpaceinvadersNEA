@@ -248,19 +248,5 @@ handleLasers:                   //r4 = laser x, r5 = laser y
 
 halt
 
-//paintScreen:			//changes all squares to the colour defined in r0
-	//push {lr,r1}
-				        //colour in all the squares white by starting at square 0, and increasing the counter by one each time the loop finishes.
-	//mov r1,#767
-	//mov r0,#144
-   // loopPaint:
-	    //strb r0,[r1+3328]
-	    //sub r1,r1,#1
-	    //cmp r1,#0
-	    //bgt loopPaint	
-	    //strb r0,[r1+3328]
-	    //pop {lr,r1}
-	    //mov pc, lr
-
 
 
