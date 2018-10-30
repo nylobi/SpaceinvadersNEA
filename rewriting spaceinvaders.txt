@@ -15,7 +15,11 @@ setUp:
 
 
 Main:
-		b Main
+	push {r0-r1}
+
+		bl drawGridOfInvaders
+	pop {r0-r1}
+		//b Main				//infinite loop to test if keyboard presses work
 	
 halt
 
@@ -23,75 +27,109 @@ halt
 
 
 handleKeyPress:			//call this from interupt
-	push {lr,r3,r4}
+	push {lr,r11,r12}
+		
+	ldr r12,.LastKey
 	
-	ldr r4,.LastKey
 	
-	
-	cmp r4,#65		//A
+	cmp r12,#65		//A
 	bne checkForD
 	
-	mov r3,#0
+	mov r11,#0				//r11 is the direction of the ship
 	bl moveShip
 	
 	checkForD:
 	cmp r4,#68		//D
 	bne checkForSpace
 	
-	mov r3,#2
+	mov r11,#2					
 	bl moveShip
 	
 	
 	checkForSpace:
-	cmp r4,#32
+	cmp r12,#32
 	bne exit
 	
 	exit:
-	pop {lr,r3,r4}
+	pop {lr,r11,r12}
 	RFE					//RFE = return from exception
 
 
 
 moveShip:
-	push {lr,r0-r3}
-	ldr r3,shipDirection
-    ldr r0,shipX
-    ldr r1,shipY
-    bl clearPixel
+	push {lr,r0-r3,r11}
+	str r11,shipDirection
+    str r0,shipX
+    str r1,shipY
+	mov r3,#0
+    bl drawFromXY
 	
-	cmp r3,0 			//0 = left
+	cmp r11,#0 			//0 = left, 2 = right, 1 = still
 	bne goRight
 	beq goLeft
 	
 	goLeft:
-	
+		mov r11,#0
+		sub r0,r0,#1
+		mov r3,#55
+		bl drawFromXY
+
+		b msEnd
+		
 	goRight:
+		mov r11,#2
+		add r0,r0,#1
+		mov r3,#55
+		bl drawFromXY
+		str r0,shipX
+		str r11,shipDirection
 	
+	msEnd:
+	pop {lr,r0-r3,r11}
+	RET
+
+drawSingleInvader:					//given x in r0 and y in r1 draws a space invader at that location
+	push {lr,r0-r3}
 	
+		mov r3,#55			//green colour
+		bl drawFromXY
 	
 	pop {lr,r0-r3}
 	RET
 	
-moveShipR:
-	push {lr}
 	
+drawRowInvader:				//given x in r0 and y in r1 (the starting position) will draw a row of space invaders given a width in invaderRowWidth
+	push {lr}
+	 
+		
+		loopRow:
+			bl drawSingleInvader			
+			add r0,r0,#2
+			sub r10,r10,#1
+			cmp r10,#0
+			bne loopRow
+		ldr r0,baseInvaderX
+		ldr r10,invaderRowWidth
 	pop {lr}
 	RET
 
-drawGridOfInvaders:			//takes in starting x in r0 y in r1, rows in r11, cols in r12 (keeps direction in r10
-	push {lr,r5}
-	
-	str r0,baseInvaderX
-	str r1,baseInvaderY
-	
-		loopRow:
-			cmp r11,#0
-			beq exitGrid
-			
-			
+drawGridOfInvaders:			//takes in starting x in baseInvaderX y in baseInvaderY, rows in invaderRowWidth, cols in invaderColLength (keeps direction in r10
+	push {lr,r0,r1,r10,r11}
 		
-	exitGrid:
-	pop {lr,r5}
+		ldr r0,baseInvaderX
+		ldr r1,baseInvaderY
+		ldr r10,invaderRowWidth
+		ldr r11,invaderColLength
+		
+		loopCol:
+		
+			bl drawRowInvader
+			add r1,r1,#2
+			sub r11,r11,#1
+			cmp r11,#0			
+			bne loopCol
+			
+	pop {lr,r0,r1,r10,r11}
 	RET
 
 
@@ -101,20 +139,20 @@ drawFromXY:			//takes in X from r0 and Y from r1 and returns the screen pos from
 	push {lr}		
 	mov r2,#0
     loopY:				//calculating y
-	    add r2,r2,#32		//32 is the screen width
+	    add r2,r2,#128		//128 is the screen width		| used to be a 32x24, moved to a 128x96 screen
 	    sub r1,r1,#1
 	    cmp r1,#0
 	    bgt loopY
 	    add r2,r2,r0		//adding x value to the (y * 32) value
-		bl drawPixel 
+		bl editPixel 
 	    pop {lr}
 	    RET	
-	
 
-drawPixel:
-	push {lr}
-	strb r3,[r2+.PixelScreen]
-	pop {lr}
+editPixel:			//r3 colour
+	push {lr,r12}
+	mov r12,#.PixelScreen
+	strb r3,[r2+r12]
+	pop {lr,r12}
 	RET
 	
 	
@@ -138,10 +176,16 @@ laserY:
 	.word 1
 	
 baseInvaderX:
-	.word 1
+	.word 72
 		
 baseInvaderY:
-	.word 1
+	.word 64
+	
+invaderRowWidth:
+	.word 11
+	
+invaderColLength:
+	.word 5
 	
 invaderDirection:
 	.word 1

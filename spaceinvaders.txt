@@ -108,7 +108,7 @@ moveShip:
 
 
 	checkStill:
-	cmp r2,#83 //SS 
+	cmp r2,#83 //S
 	bne checkDirection
 	mov r3,#2
 	str r3,shipDirection
