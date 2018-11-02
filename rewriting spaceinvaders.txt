@@ -87,6 +87,17 @@ moveShip:
 	msEnd:
 	pop {lr,r0-r3,r11}
 	RET
+	
+	
+drawShip:					//given x in r0 and y in r1 draws the ship at that location
+	push {lr,r0-r3}
+	
+		mov r3,#10			//green colour | will change back to green if wanted
+		bl drawFromXY
+	
+	pop {lr,r0-r3}
+	RET
+
 
 drawSingleInvader:					//given x in r0 and y in r1 draws a space invader at that location
 	push {lr,r0-r3}
@@ -131,22 +142,20 @@ drawGridOfInvaders:			//takes in starting x in baseInvaderX y in baseInvaderY, r
 			
 	pop {lr,r0,r1,r10,r11}
 	RET
-
-
-
-drawFromXY:			//takes in X from r0 and Y from r1 and returns the screen pos from r2
-
-	push {lr}		
+	
+		
+drawFromXY:			//given x in r0, y in r1 returns screen pos from r2 and then calls editPixel at that location on the screen
+	push {lr}
+	
 	mov r2,#0
-    loopY:				//calculating y
-	    add r2,r2,#128		//128 is the screen width		| used to be a 32x24, moved to a 128x96 screen
-	    sub r1,r1,#1
-	    cmp r1,#0
-	    bgt loopY
-	    add r2,r2,r0		//adding x value to the (y * 32) value
-		bl editPixel 
-	    pop {lr}
-	    RET	
+	
+	lsl r2,r1,#7	//changed from multiplying by adding to using LSL to multiply the y value by 128
+	add r2,r2,r0	//this now runs much faster
+	bl editPixel
+	
+	
+	pop {lr}
+	RET
 
 editPixel:			//r3 colour
 	push {lr,r12}
