@@ -15,34 +15,30 @@ setUp:
 
 
 Main:
-	push {r0-r1}
 
-		bl drawGridOfInvaders
-	pop {r0-r1}
-		//b Main				//infinite loop to test if keyboard presses work
+		b Main				//infinite loop to test if keyboard presses work
 	
 halt
 
 
 
-
 handleKeyPress:			//call this from interupt
 	push {lr,r11,r12}
-		
 	ldr r12,.LastKey
 	
 	
 	cmp r12,#65		//A
-	bne checkForD
-	
+	bne checkForD	
 	mov r11,#0				//r11 is the direction of the ship
+	str r11,shipDirection
 	bl moveShip
 	
-	checkForD:
-	cmp r4,#68		//D
-	bne checkForSpace
 	
-	mov r11,#2					
+	checkForD:
+	cmp r12,#68		//D
+	bne checkForSpace	
+	mov r11,#2
+	str r11,shipDirection	
 	bl moveShip
 	
 	
@@ -57,35 +53,44 @@ handleKeyPress:			//call this from interupt
 
 
 moveShip:
-	push {lr,r0-r3,r11}
-	str r11,shipDirection
-    str r0,shipX
-    str r1,shipY
+	push {lr,r0-r5,r11}
+	ldr r11,shipDirection
+    ldr r0,shipX
+    ldr r1,shipY
+	
+	ldr r4,screenLeftEdge
+	ldr r5,screenRightEdge
+	
 	mov r3,#0
     bl drawFromXY
-	
-	cmp r11,#0 			//0 = left, 2 = right, 1 = still
-	bne goRight
-	beq goLeft
-	
-	goLeft:
-		mov r11,#0
-		sub r0,r0,#1
-		mov r3,#55
-		bl drawFromXY
 
-		b msEnd
-		
-	goRight:
-		mov r11,#2
-		add r0,r0,#1
-		mov r3,#55
-		bl drawFromXY
-		str r0,shipX
-		str r11,shipDirection
+	
+	cmp r11,#0
+	beq moveLeft
+	cmp r11,#2
+	beq moveRight
+	b msEnd
+	
+	moveLeft:
+	cmp r0,r4
+	beq msEnd			//checking if the ship is at the edge of the screen
+	
+	sub r0,r0,#1
+	b msEnd
+	
+	moveRight:
+	cmp r0,r5
+	beq msEnd			//checking if the ship is at the edge of the screen
+	
+	add r0,r0,#1
+
+	b msEnd
 	
 	msEnd:
-	pop {lr,r0-r3,r11}
+	bl drawShip
+	str r0,shipX
+	str r11,shipDirection
+	pop {lr,r0-r5,r11}
 	RET
 	
 	
@@ -173,7 +178,7 @@ shipX:
 	.word 4
 	
 shipY:
-	.word 20
+	.word 90
 	
 shipDirection:
 	.word 1
@@ -198,3 +203,7 @@ invaderColLength:
 	
 invaderDirection:
 	.word 1
+screenLeftEdge:
+	.word 0
+screenRightEdge:
+	.word 127
