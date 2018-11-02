@@ -15,8 +15,10 @@ setUp:
 
 
 Main:
-
-		b Main				//infinite loop to test if keyboard presses work
+		bl drawGridOfInvaders
+		halt
+		bl clearGrid
+		//b Main				//infinite loop to test if keyboard presses work
 	
 halt
 
@@ -92,8 +94,7 @@ moveShip:
 	str r11,shipDirection
 	pop {lr,r0-r5,r11}
 	RET
-	
-	
+
 drawShip:					//given x in r0 and y in r1 draws the ship at that location
 	push {lr,r0-r3}
 	
@@ -102,6 +103,54 @@ drawShip:					//given x in r0 and y in r1 draws the ship at that location
 	
 	pop {lr,r0-r3}
 	RET
+
+	
+clearpixel:					//given x in r0 and y in r1 draws a white pixel at that location (white is the background colour)
+	push {lr,r0-r3}
+	
+		mov r3,#0			
+		bl drawFromXY
+	
+	pop {lr,r0-r3}
+	RET
+	
+	
+clearRow:
+	push {lr}
+	 
+		
+		loopRowClear:
+			bl clearpixel			
+			add r0,r0,#2
+			sub r10,r10,#1
+			cmp r10,#0
+			bne loopRowClear
+		ldr r0,baseClearingX
+		ldr r10,clearSpaceWidth
+	pop {lr}
+	RET
+	
+	
+clearGrid:
+
+	push {lr,r0,r1,r10,r11}
+		
+		ldr r0,baseClearingX
+		ldr r1,baseClearingY
+		ldr r10,clearSpaceWidth
+		ldr r11,clearSpaceHeight
+		
+		loopColClear:
+		
+			bl clearRow
+			add r1,r1,#2
+			sub r11,r11,#1
+			cmp r11,#0			
+			bne loopColClear
+			
+	pop {lr,r0,r1,r10,r11}
+	RET
+
 
 
 drawSingleInvader:					//given x in r0 and y in r1 draws a space invader at that location
@@ -129,6 +178,7 @@ drawRowInvader:				//given x in r0 and y in r1 (the starting position) will draw
 	pop {lr}
 	RET
 
+	
 drawGridOfInvaders:			//takes in starting x in baseInvaderX y in baseInvaderY, rows in invaderRowWidth, cols in invaderColLength (keeps direction in r10
 	push {lr,r0,r1,r10,r11}
 		
@@ -147,7 +197,7 @@ drawGridOfInvaders:			//takes in starting x in baseInvaderX y in baseInvaderY, r
 			
 	pop {lr,r0,r1,r10,r11}
 	RET
-	
+
 		
 drawFromXY:			//given x in r0, y in r1 returns screen pos from r2 and then calls editPixel at that location on the screen
 	push {lr}
@@ -183,11 +233,13 @@ shipY:
 shipDirection:
 	.word 1
 
+	
 laserX:
 	.word 1
 	
 laserY:
 	.word 1
+	
 	
 baseInvaderX:
 	.word 72
@@ -199,11 +251,27 @@ invaderRowWidth:
 	.word 11
 	
 invaderColLength:
-	.word 5
+	.word 5	
 	
 invaderDirection:
 	.word 1
+	
+
+baseClearingX:
+	.word 72
+		
+baseClearingY:
+	.word 64
+	
+clearSpaceWidth:
+	.word 11
+	
+clearSpaceHeight:
+	.word 5	
+	
+	
 screenLeftEdge:
 	.word 0
+	
 screenRightEdge:
 	.word 127
