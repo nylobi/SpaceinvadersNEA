@@ -1,5 +1,6 @@
-setUp:
 // Set up Clockinterrupt handling
+setUp:
+
 		mov r0, #handleKeyPress
 		str r0, .KeyboardISR 
 		mov r0,#1
@@ -15,16 +16,14 @@ setUp:
 
 
 Main:
-		bl drawGridOfInvaders
-		halt
-		bl clearGrid
-		//b Main				//infinite loop to test if keyboard presses work
+	bl moveInvaders
+		b Main				//infinite loop to test if keyboard presses work
 	
 halt
 
 
-
-handleKeyPress:			//call this from interupt
+//call this from interupt
+handleKeyPress:			
 	push {lr,r11,r12}
 	ldr r12,.LastKey
 	
@@ -95,7 +94,9 @@ moveShip:
 	pop {lr,r0-r5,r11}
 	RET
 
-drawShip:					//given x in r0 and y in r1 draws the ship at that location
+	
+//given x in r0 and y in r1 draws the ship at that location	
+drawShip:					
 	push {lr,r0-r3}
 	
 		mov r3,#10			//green colour | will change back to green if wanted
@@ -104,8 +105,8 @@ drawShip:					//given x in r0 and y in r1 draws the ship at that location
 	pop {lr,r0-r3}
 	RET
 
-	
-clearpixel:					//given x in r0 and y in r1 draws a white pixel at that location (white is the background colour)
+//given x in r0 and y in r1 draws a white pixel at that location (white is the background colour)	
+clearpixel:					
 	push {lr,r0-r3}
 	
 		mov r3,#0			
@@ -152,8 +153,8 @@ clearGrid:
 	RET
 
 
-
-drawSingleInvader:					//given x in r0 and y in r1 draws a space invader at that location
+//given x in r0 and y in r1 draws a space invader at that location
+drawSingleInvader:					
 	push {lr,r0-r3}
 	
 		mov r3,#55			//green colour
@@ -162,8 +163,8 @@ drawSingleInvader:					//given x in r0 and y in r1 draws a space invader at that
 	pop {lr,r0-r3}
 	RET
 	
-	
-drawRowInvader:				//given x in r0 and y in r1 (the starting position) will draw a row of space invaders given a width in invaderRowWidth
+//given x in r0 and y in r1 (the starting position) will draw a row of space invaders given a width in invaderRowWidth
+drawRowInvader:				
 	push {lr}
 	 
 		
@@ -178,8 +179,8 @@ drawRowInvader:				//given x in r0 and y in r1 (the starting position) will draw
 	pop {lr}
 	RET
 
-	
-drawGridOfInvaders:			//takes in starting x in baseInvaderX y in baseInvaderY, rows in invaderRowWidth, cols in invaderColLength (keeps direction in r10
+//takes in starting x in baseInvaderX y in baseInvaderY, rows in invaderRowWidth, cols in invaderColLength (keeps direction in r10	
+drawGridOfInvaders:			
 	push {lr,r0,r1,r10,r11}
 		
 		ldr r0,baseInvaderX
@@ -197,9 +198,84 @@ drawGridOfInvaders:			//takes in starting x in baseInvaderX y in baseInvaderY, r
 			
 	pop {lr,r0,r1,r10,r11}
 	RET
+	
+
+moveInvaders:
+	push {lr,r0,r4,r5,r6,r10,r11}	
+	ldr r10,invaderRowWidth
+	ldr r11,invaderColLength
+	ldr r4,screenLeftEdge
+	ldr r5,screenRightEdge
+
+	//lsl r10,r10,#1
+	sub r5,r5,#23
+	ldr r6,invaderDirection
+	
+	bl clearGrid
+	
+	ldr r0,baseInvaderX
+	ldr r1,baseInvaderY
+
+	
+	cmp r0,r5
+	bgt moveIDown
+	cmp r0,r4
+	blt moveIDown
+	
+	
+	checkIDR:
+		cmp r6,#2
+		bne checkIDL
+		b moveIRight
+
+		checkIDL:
+			cmp r6,#0
+			bne moveIEnd
+			b moveILeft
+			
+		
+	
+	moveIRight:
+		add r0,r0,#5				//moves invaders 5 spaces to the right
+		b moveIEnd
 
 		
-drawFromXY:			//given x in r0, y in r1 returns screen pos from r2 and then calls editPixel at that location on the screen
+	moveILeft:
+		sub r0,r0,#5				//moves invaders 5 spaces to the left
+		b moveIEnd
+
+	moveIDown:
+		add r1,r1,#5
+		b changeID	
+
+	changeID:
+		cmp r6,#0
+		bne changeIDR
+		mov r6,#2
+		b moveIRight
+		
+		changeIDR:
+			cmp r6,#2
+			bne moveIEnd
+			mov r6,#0
+			b moveILeft
+			
+			
+	
+	moveIEnd:
+	str r6,invaderDirection	
+	str r0,baseInvaderX
+	str r0,baseClearingX	
+	str r1,baseInvaderY
+	str r1,baseClearingY
+	bl drawGridOfInvaders
+	pop {lr,r0,r4,r5,r6,r10,r11}
+	RET
+
+
+
+//given x in r0, y in r1 returns screen pos from r2 and then calls editPixel at that location on the screen	
+drawFromXY:			
 	push {lr}
 	
 	mov r2,#0
@@ -242,10 +318,10 @@ laserY:
 	
 	
 baseInvaderX:
-	.word 72
+	.word 8
 		
 baseInvaderY:
-	.word 64
+	.word 8
 	
 invaderRowWidth:
 	.word 11
@@ -254,14 +330,14 @@ invaderColLength:
 	.word 5	
 	
 invaderDirection:
-	.word 1
+	.word 2
 	
 
 baseClearingX:
-	.word 72
+	.word 8
 		
 baseClearingY:
-	.word 64
+	.word 8
 	
 clearSpaceWidth:
 	.word 11
