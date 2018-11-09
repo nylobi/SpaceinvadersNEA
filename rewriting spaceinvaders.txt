@@ -1,61 +1,73 @@
-// Set up Clockinterrupt handling
+// Set up all interrupt handling
 setUp:
 
 		mov r0, #handleKeyPress
 		str r0, .KeyboardISR 
 		mov r0,#1
 		strb r0, .KeyboardMask
-
+		
+		mov r1, #handleClockInterrupt
+		str r1,.ClockISR
+		mov r1,#0x32		//2 seconds
+		strb r1,.ClockInterruptFrequency
+		
 
 //Enable all interrupts
       mov r0,#1
       strb r0,.InterruptRegister
-
-
-
+	  mov r1,#1
+	  strb r1,.InterruptRegister
 
 
 Main:
-	bl moveInvaders
-		b Main				//infinite loop to test if keyboard presses work
+
+		b Main				//infinite loop to test if keyboard presses work jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj
 	
 halt
 
+handleClockInterrupt:
+	push {lr}
+	
 
-//call this from interupt
+		bl moveInvaders						//spaceinvaders move every 3 second
+	//laser moves x of spaceinvaders speed
+	
+	//ship moves at x of spaceinvaders speed
+	
+	pop {lr}
+	RFE
+
+//call this from interrupt
 handleKeyPress:			
 	push {lr,r11,r12}
 	ldr r12,.LastKey
-	
 	
 	cmp r12,#65		//A
 	bne checkForD	
 	mov r11,#0				//r11 is the direction of the ship
 	str r11,shipDirection
 	bl moveShip
-	
-	
+		
 	checkForD:
 	cmp r12,#68		//D
 	bne checkForSpace	
 	mov r11,#2
 	str r11,shipDirection	
 	bl moveShip
-	
-	
+		
 	checkForSpace:
 	cmp r12,#32
 	bne exit
+	bl handleLasers
 	
 	exit:
 	pop {lr,r11,r12}
 	RFE					//RFE = return from exception
 
 
-
 moveShip:
 	push {lr,r0-r5,r11}
-	ldr r11,shipDirection
+	ldr r11,shipDirection		//for the ship direction 0 is left (1 will be still) and 2 is right)
     ldr r0,shipX
     ldr r1,shipY
 	
@@ -64,9 +76,8 @@ moveShip:
 	
 	mov r3,#0
     bl drawFromXY
-
 	
-	cmp r11,#0
+	cmp r11,#0					//checking what direction to move the ship in
 	beq moveLeft
 	cmp r11,#2
 	beq moveRight
@@ -93,7 +104,6 @@ moveShip:
 	str r11,shipDirection
 	pop {lr,r0-r5,r11}
 	RET
-
 	
 //given x in r0 and y in r1 draws the ship at that location	
 drawShip:					
@@ -115,11 +125,10 @@ clearpixel:
 	pop {lr,r0-r3}
 	RET
 	
-	
+//clearing a row of invaders. basically the same as drawRowInvader but draws them in white.
 clearRow:
 	push {lr}
-	 
-		
+	 		
 		loopRowClear:
 			bl clearpixel			
 			add r0,r0,#2
@@ -129,9 +138,8 @@ clearRow:
 		ldr r0,baseClearingX
 		ldr r10,clearSpaceWidth
 	pop {lr}
-	RET
-	
-	
+	RET	
+//Clears a grid (of invaders) . Basically drawing a white coloured grid of invaders	
 clearGrid:
 
 	push {lr,r0,r1,r10,r11}
@@ -152,7 +160,6 @@ clearGrid:
 	pop {lr,r0,r1,r10,r11}
 	RET
 
-
 //given x in r0 and y in r1 draws a space invader at that location
 drawSingleInvader:					
 	push {lr,r0-r3}
@@ -166,8 +173,7 @@ drawSingleInvader:
 //given x in r0 and y in r1 (the starting position) will draw a row of space invaders given a width in invaderRowWidth
 drawRowInvader:				
 	push {lr}
-	 
-		
+	 		
 		loopRow:
 			bl drawSingleInvader			
 			add r0,r0,#2
@@ -179,7 +185,7 @@ drawRowInvader:
 	pop {lr}
 	RET
 
-//takes in starting x in baseInvaderX y in baseInvaderY, rows in invaderRowWidth, cols in invaderColLength (keeps direction in r10	
+//takes in starting x in baseInvaderX y in baseInvaderY, rows in invaderRowWidth, cols in invaderColLength (keeps direction in r10) 
 drawGridOfInvaders:			
 	push {lr,r0,r1,r10,r11}
 		
@@ -199,16 +205,18 @@ drawGridOfInvaders:
 	pop {lr,r0,r1,r10,r11}
 	RET
 	
-
 moveInvaders:
-	push {lr,r0,r4,r5,r6,r10,r11}	
+	push {lr,r0,r4,r5,r6,r7,r10,r11}	
 	ldr r10,invaderRowWidth
 	ldr r11,invaderColLength
 	ldr r4,screenLeftEdge
 	ldr r5,screenRightEdge
+	mov r7,#8
 
-	//lsl r10,r10,#1
-	sub r5,r5,#23
+	lsl r10,r10,#1
+	add r10,r10,#8
+	sub r5,r5,r10						//changing the edge of the screen so that the invaders dont go off it
+	add r11,r11,#8
 	ldr r6,invaderDirection
 	
 	bl clearGrid
@@ -216,12 +224,10 @@ moveInvaders:
 	ldr r0,baseInvaderX
 	ldr r1,baseInvaderY
 
-	
 	cmp r0,r5
 	bgt moveIDown
 	cmp r0,r4
 	blt moveIDown
-	
 	
 	checkIDR:
 		cmp r6,#2
@@ -234,18 +240,16 @@ moveInvaders:
 			b moveILeft
 			
 		
-	
 	moveIRight:
-		add r0,r0,#5				//moves invaders 5 spaces to the right
+		add r0,r0,r7				//moves invaders 5 spaces to the right
 		b moveIEnd
-
 		
 	moveILeft:
-		sub r0,r0,#5				//moves invaders 5 spaces to the left
+		sub r0,r0,r7				//moves invaders 5 spaces to the left
 		b moveIEnd
 
 	moveIDown:
-		add r1,r1,#5
+		add r1,r1,r7
 		b changeID	
 
 	changeID:
@@ -269,10 +273,70 @@ moveInvaders:
 	str r1,baseInvaderY
 	str r1,baseClearingY
 	bl drawGridOfInvaders
-	pop {lr,r0,r4,r5,r6,r10,r11}
+	pop {lr,r0,r4,r5,r6,r7,r10,r11}
 	RET
 
+	
+//
 
+drawLaser:					
+	push {lr,r0-r3}
+	
+		mov r3,#120			//green colour
+		bl drawFromXY
+	
+	pop {lr,r0-r3}
+	RET	
+	
+handleLasers:
+	push {lr,r0,r1,r5}
+	
+		ldr r5,existingLaser
+
+		
+		
+		checkForLaser:
+			cmp r5,#0
+			beq initialFire
+			
+			cmp r5,#1
+			beq moveLaser
+			
+		b hLExit
+				
+		initialFire:
+			ldr r0,shipX
+			ldr r1,shipY
+
+			str r0,laserX
+			str r1,laserY
+
+			sub r1,r1,#1
+			bl drawLaser
+			
+			mov r5,#1
+			
+		b hLExit
+		
+		
+		moveLaser:
+			ldr r0,laserX
+			ldr r1,laserY
+			
+			bl clearpixel
+			sub r1,r1,#1
+			bl drawLaser
+			
+			cmp r1,#0
+			bne hLExit
+			mov r5,#0
+
+	hLExit:
+	str r5,existingLaser
+	str r0,laserX
+	str r1,laserY		
+	pop {lr,r0,r1,r5}
+	RET
 
 //given x in r0, y in r1 returns screen pos from r2 and then calls editPixel at that location on the screen	
 drawFromXY:			
@@ -314,6 +378,9 @@ laserX:
 	.word 1
 	
 laserY:
+	.word 1
+	
+existingLaser:
 	.word 1
 	
 	
