@@ -8,7 +8,7 @@ setUp:
 		
 		mov r1, #handleClockInterrupt
 		str r1,.ClockISR
-		mov r1,#0x32		//2 seconds
+		mov r1,#0x11		//100ms 
 		strb r1,.ClockInterruptFrequency
 		
 
@@ -20,65 +20,97 @@ setUp:
 
 
 Main:
-
-		b Main				//infinite loop to test if keyboard presses work jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj
+	
+	bl moveInvaders
+		b Main				//infinite loop to test if keyboard presses work 
 	
 halt
 
 handleClockInterrupt:
-	push {lr}
+	push {lr,r9,r10}
 	
-
-		bl moveInvaders						//spaceinvaders move every 3 second
-	//laser moves x of spaceinvaders speed
+		ldr r9,interruptCounter
+		add r9,r9,#1
+		str r9,interruptCounter
+		ldr r10,shipMove
+		
+		checkMoveShip:
+		cmp r9,#8
+		bne endClockInt
+		
+		cmp r10,#1
+		bne endClockInt
+		bl moveShip
+		
+		
+		resetIntCount:
+		mov r9,#0
 	
-	//ship moves at x of spaceinvaders speed
-	
-	pop {lr}
+	endClockInt:
+		cmp r9,#8
+		beq resetIntCount
+			
+		bl handleLasers	
+		str r9,interruptCounter
+	pop {lr,r9,r10}
 	RFE
+	
 
 //call this from interrupt
 handleKeyPress:			
-	push {lr,r11,r12}
+	push {lr,r10,r11,r12}
 	ldr r12,.LastKey
+	mov r10,#1
 	
 	cmp r12,#65		//A
 	bne checkForD	
 	mov r11,#0				//r11 is the direction of the ship
 	str r11,shipDirection
-	bl moveShip
+	str r10,shipMove
+	//bl moveShip
 		
 	checkForD:
 	cmp r12,#68		//D
-	bne checkForSpace	
+	bne checkForS	
 	mov r11,#2
 	str r11,shipDirection	
-	bl moveShip
+	str r10,shipMove
+	//bl moveShip
+	
+	checkForS:
+	cmp r12,#83		//S
+	bne checkForSpace
+	mov r11,#1
+	str r11,shipDirection
+	str r10,shipMove
 		
 	checkForSpace:
 	cmp r12,#32
 	bne exit
+	mov r5,#1
+	str r5,existingLaser
 	bl handleLasers
 	
 	exit:
-	pop {lr,r11,r12}
+	pop {lr,r10,r11,r12}
 	RFE					//RFE = return from exception
 
 
 moveShip:
-	push {lr,r0-r5,r11}
+	push {lr,r0-r5,r10,r11}
 	ldr r11,shipDirection		//for the ship direction 0 is left (1 will be still) and 2 is right)
     ldr r0,shipX
     ldr r1,shipY
-	
+	bl clearShip
 	ldr r4,screenLeftEdge
 	ldr r5,screenRightEdge
 	
-	mov r3,#0
-    bl drawFromXY
+
 	
 	cmp r11,#0					//checking what direction to move the ship in
 	beq moveLeft
+	cmp r11,#1
+	beq stayStill
 	cmp r11,#2
 	beq moveRight
 	b msEnd
@@ -98,23 +130,43 @@ moveShip:
 
 	b msEnd
 	
+	stayStill:
+	b msEnd
+	
 	msEnd:
 	bl drawShip
 	str r0,shipX
 	str r11,shipDirection
-	pop {lr,r0-r5,r11}
+	mov r10,#0
+	//str r10,shipMove
+	pop {lr,r0-r5,r10,r11}
 	RET
 	
 //given x in r0 and y in r1 draws the ship at that location	
 drawShip:					
 	push {lr,r0-r3}
 	
-		mov r3,#10			//green colour | will change back to green if wanted
+
+	
+		mov r3,#10			//blue colour | will change back to green if wanted
 		bl drawFromXY
 	
 	pop {lr,r0-r3}
 	RET
 
+//given x in r0 and y in r1 draws the ship at that location	
+clearShip:					
+	push {lr,r0-r3}
+	
+
+		mov r3,#0			//blue colour | will change back to green if wanted
+		bl drawFromXY
+
+		
+	
+	pop {lr,r0-r3}
+	RET
+	
 //given x in r0 and y in r1 draws a white pixel at that location (white is the background colour)	
 clearpixel:					
 	push {lr,r0-r3}
@@ -277,12 +329,12 @@ moveInvaders:
 	RET
 
 	
-//
+//when space pressed, then it shoots a laser starting above the ship and will keep going to the top then a new laser will be able to be fired.
 
 drawLaser:					
 	push {lr,r0-r3}
 	
-		mov r3,#120			//green colour
+		mov r3,#120			//red colour
 		bl drawFromXY
 	
 	pop {lr,r0-r3}
@@ -297,9 +349,12 @@ handleLasers:
 		
 		checkForLaser:
 			cmp r5,#0
-			beq initialFire
+			beq hLExit
 			
 			cmp r5,#1
+			beq initialFire
+			
+			cmp r5,#2
 			beq moveLaser
 			
 		b hLExit
@@ -314,7 +369,7 @@ handleLasers:
 			sub r1,r1,#1
 			bl drawLaser
 			
-			mov r5,#1
+			mov r5,#2
 			
 		b hLExit
 		
@@ -373,6 +428,9 @@ shipY:
 shipDirection:
 	.word 1
 
+shipMove:
+	.word 0
+
 	
 laserX:
 	.word 1
@@ -410,7 +468,7 @@ clearSpaceWidth:
 	.word 11
 	
 clearSpaceHeight:
-	.word 5	
+	.word 5
 	
 	
 screenLeftEdge:
@@ -418,3 +476,6 @@ screenLeftEdge:
 	
 screenRightEdge:
 	.word 127
+	
+interruptCounter:
+	.word 0
