@@ -58,7 +58,7 @@ handleClockInterrupt:
 
 //call this from interrupt
 handleKeyPress:			
-	push {lr,r10,r11,r12}
+	push {lr,r5,r10,r11,r12}
 	ldr r12,.LastKey
 	mov r10,#1
 	
@@ -87,12 +87,12 @@ handleKeyPress:
 	checkForSpace:
 	cmp r12,#32
 	bne exit
-	mov r5,#1
+	mov r5,#1					//r5 is changed but isnt restored, r12 would be fine
 	str r5,existingLaser
 	bl handleLasers
 	
 	exit:
-	pop {lr,r10,r11,r12}
+	pop {lr,r5,r10,r11,r12}
 	RFE					//RFE = return from exception
 
 
@@ -150,6 +150,19 @@ drawShip:
 	
 		mov r3,#10			//blue colour | will change back to green if wanted
 		bl drawFromXY
+		
+		add r0,r0,#1
+		bl drawFromXY
+		
+		sub r0,r0,#2
+		bl drawFromXY
+		
+		add r0,r0,#1
+		bl drawFromXY
+		
+		sub r1,r1,#1		
+		bl drawFromXY
+		add r1,r1,#1
 	
 	pop {lr,r0-r3}
 	RET
@@ -159,9 +172,21 @@ clearShip:
 	push {lr,r0-r3}
 	
 
-		mov r3,#0			//blue colour | will change back to green if wanted
+		mov r3,#0			//white, back colour
 		bl drawFromXY
-
+		
+		add r0,r0,#1
+		bl drawFromXY
+		
+		sub r0,r0,#2
+		bl drawFromXY
+		
+		add r0,r0,#1
+		bl drawFromXY
+		
+		sub r1,r1,#1		
+		bl drawFromXY
+		add r1,r1,#1
 		
 	
 	pop {lr,r0-r3}
@@ -218,6 +243,8 @@ drawSingleInvader:
 	
 		mov r3,#55			//green colour
 		bl drawFromXY
+		
+
 	
 	pop {lr,r0-r3}
 	RET
