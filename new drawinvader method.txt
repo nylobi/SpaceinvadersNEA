@@ -1,0 +1,86 @@
+       
+
+
+
+		mov r11,#invaderArmsUp
+        mov r12,#0    //row
+		mov r9,#1			//the mask
+		
+			mov r0,#0		//x
+			mov r1,#0		//y
+			mov r3,#55		//colour
+			
+		loop:
+			ldrb r10,[r11 + r12]		//only gets 8 bits 
+
+			and r8,r10,r9
+			cmp r8,#0
+			beq next
+			// if it is equal then draw the pixel of the right colour
+
+			bl drawFromXY
+			
+				//draw the next bit in the row
+					//LSL r9 by 1, once r1 it is over 256 then exit the loop and increment r12 by 1 and then keep going until r12 is 7/8			
+				next:
+
+					lsl r9,r9,#1
+					add r0,r0,#1
+						cmp r9,#256
+						beq next2
+						b loop
+						
+						//move to the next row
+						next2:
+						
+
+							mov r9,#1
+							add r12,r12,#1
+							add r1,r1,#1
+							mov r0,#0
+							cmp r12,#8
+							beq exit
+							
+					
+			b loop
+			
+		exit:
+		mov r0,r0		//no op
+		halt
+			
+
+			
+  
+  
+  //given x in r0, y in r1 returns screen pos from r2 and then calls editPixel at that location on the screen	
+drawFromXY:			
+	push {lr,r2}
+	
+	mov r2,#0
+	
+	lsl r2,r1,#7	//changed from multiplying by adding to using LSL to multiply the y value by 128
+	add r2,r2,r0	//this now runs much faster
+	bl editPixel
+	
+	
+	pop {lr,r2}
+	RET
+
+editPixel:			//r3 colour
+	push {lr,r12}
+	mov r12,#.PixelScreen
+	strb r3,[r2+r12]
+	pop {lr,r12}
+	RET
+  
+  
+  
+    invaderArmsUp:
+        .byte 0b01000010
+        .byte 0b00100100
+        .byte 0b10111101
+        .byte 0b11011011
+        .byte 0b11111111
+        .byte 0b01000010
+        .byte 0b10000001
+		.byte 0b00000000
