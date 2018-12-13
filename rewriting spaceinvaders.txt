@@ -25,33 +25,33 @@ Main:
 	
 	bl drawRowOf23Invader
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 	halt
-	bl moveRow2
+	bl moveRow
 
 halt
 
@@ -222,14 +222,13 @@ clearpixel:
 editR23Invader:					
 	push {lr,r0-r2,r8-r12}
 	
-mov r11,#invaderArmsUp
+mov r11,#invaderRow23ArmsUp
+
         mov r12,#0    //row
 		mov r9,#1			//the mask
 			
-
 		ldr r0,baseR2InvaderX
 		ldr r1,baseR2InvaderY
-
 					
 		loopDSI:
 			ldrb r10,[r11 + r12]		//only gets 8 bits 
@@ -306,12 +305,13 @@ clearRowOf23Invader:
 	RET
 
 
-moveRow2:
-		push {lr,r0,r1,r4,r5,r6,r10}
+moveRow:
+		push {lr,r0,r1,r4-r7,r10}
 		
 		mov r6,#0
 		add r6,r6,#1
 		
+		ldr r7,invaderDirection
 		ldr r10,invaderRowWidth
 		ldr r4,screenLeftEdge
 		ldr r5,screenRightEdge
@@ -321,39 +321,61 @@ moveRow2:
 		ldr r0,storedR2InvaderX
 		ldr r1,baseR2InvaderY
 		
-		cmp r6,#1
-		bne moveRow2Left
+		checkIRightEdge:
+			cmp r0,#24
+			bne checkILeftEdge
+			mov r7,#1
 		
-		moveRow2Down:
+		checkILeftEdge:
+			cmp r0,#0
+			bne checkMRRight
+			mov r7,#1
+		
+		checkMRRight:
+			cmp r7,#2
+			beq moveRowRight
+		
+		checkMRLeft:
+			cmp r7,#0
+			beq moveRowLeft
+			
+		checkMRDown:
+			cmp r7,#1
+			beq moveRowDown
+		
+		
+		moveRowDown:
 			add r1,r1,#2
 			str r1,baseR2InvaderY
 			ldr r0,storedR2InvaderX
 			str r0,baseR2InvaderX
 			bl drawRowOf23Invader
-			b endRow2Move
+			
+			cmp r0,#132
+			mov r7,#0
+			str r7,invaderDirection
+			bl clearRowOf23Invader
+			mov r0,#24
+			b moveRowLeft
 		
-		
-		
-		moveRow2Right:
+		moveRowRight:
 			add r0,r0,#2
 			str r0,baseR2InvaderX
 			str r0,storedR2InvaderX
 			bl drawRowOf23Invader
-			b endRow2Move
+			b endMoveRow
 			
-		moveRow2Left:
+		moveRowLeft:
 			sub r0,r0,#2
 			str r0,baseR2InvaderX
 			str r0,storedR2InvaderX
 			bl drawRowOf23Invader
-			b endRow2Move
-			
-
-			
-		endRow2Move:
+			b endMoveRow
+				
+		endMoveRow:
 		
-		
-		pop {lr,r0,r1,r4,r6,r5,r10}
+	
+		pop {lr,r0,r1,r4-r7,r10}
 		RET
 	
 //when space pressed, then it shoots a laser starting above the ship and will keep going to the top then a new laser will be able to be fired.
@@ -372,7 +394,6 @@ handleLasers:
 	
 		ldr r5,existingLaser
 
-		
 		
 		checkForLaser:
 			cmp r5,#0
@@ -399,7 +420,6 @@ handleLasers:
 			mov r5,#2
 			
 		b hLExit
-		
 		
 		moveLaser:
 			ldr r0,laserX
@@ -430,7 +450,6 @@ drawFromXY:
 	add r2,r2,r0	//this now runs much faster
 	bl editPixel
 	
-	
 	pop {lr,r2}
 	RET
 
@@ -441,9 +460,7 @@ editPixel:			//r3 colour
 	pop {lr,r12}
 	RET
 	
-	
 halt
-
 
 //storing these in main memory---KEEP IT AT THE BOTTOM
 shipX:
@@ -458,7 +475,7 @@ shipDirection:
 shipMove:
 	.word 0
 
-	
+
 laserX:
 	.word 1
 	
@@ -486,6 +503,8 @@ invaderColLength:
 	
 invaderDirection:
 	.word 2
+
+
 	
 	
 screenLeftEdge:
@@ -497,22 +516,22 @@ screenRightEdge:
 interruptCounter:
 	.word 0
 	
-    invaderArmsUp:
-        .byte 0b01000010
-        .byte 0b00100100
-        .byte 0b10111101
-        .byte 0b11011011
-        .byte 0b11111111
-        .byte 0b01000010
-        .byte 0b10000001
-		.byte 0b00000000
-		
-    invader1ArmsUp:
-        .byte 0b01000010
-        .byte 0b00100100
-        .byte 0b10000001
-        .byte 0b11011011
-        .byte 0b11100111
-        .byte 0b01000010
-        .byte 0b10000001
-		.byte 0b00000000
+invaderRow23ArmsUp:
+	.byte 0b01000010
+	.byte 0b00100100
+    .byte 0b10111101
+	.byte 0b11011011
+	.byte 0b11111111
+	.byte 0b01000010
+	.byte 0b10000001
+	.byte 0b00000000
+	
+invader23ArmsDown:
+	.byte 0b01000010
+    .byte 0b00100100
+	.byte 0b00111100
+	.byte 0b01011010
+	.byte 0b11111111
+	.byte 0b11000011
+	.byte 0b10100101
+	.byte 0b00000000
