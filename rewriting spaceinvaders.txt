@@ -20,7 +20,6 @@ setUp:
 
 
 Main:
-
 		b Main				//infinite loop to test if keyboard presses work 
 
 halt
@@ -361,8 +360,7 @@ clearRowOfInvader:
 			
 		ldr r0,baseInvaderX
 		ldr r10,invaderRowWidth
-		
-//-----------		
+			
 	clearRowEnd:
 			
 		cmp r4,#0
@@ -375,7 +373,6 @@ clearRowOfInvader:
 		beq cre3
 			
 		cre1:			
-		
 			ldr r0,baseR1InvaderX
 			str r0,storedR1InvaderX		
 			b endClearRow
@@ -389,7 +386,6 @@ clearRowOfInvader:
 			b endClearRow	
 	
 	endClearRow:
-
 		
 	pop {lr,r3,r4,r10}
 	RET	
@@ -410,6 +406,10 @@ moveRow:
 		ldr r0,storedInvaderX
 		ldr r1,baseInvaderY
 		 
+		checkGameOver:
+			cmp r1,#75
+			bgt gameOver
+		
 		checkIRightEdge:
 			cmp r0,#24
 			bne checkILeftEdge
@@ -434,13 +434,36 @@ moveRow:
 		
 		
 		moveRowDown:
-		halt
+		
 			add r1,r1,#2				//moves the space invader down
 			str r1,baseInvaderY
 			ldr r0,storedInvaderX
 			str r0,baseInvaderX
-			bl drawRowOfInvader
-			halt
+			ldr r8,invaderFlag
+			
+			cmp r8,#0
+			beq sycr1
+			
+			cmp r8,#1
+			beq sycr2
+			
+			cmp r8,#2
+			beq sycr3
+			
+			sycr1:
+			str r1,baseR1InvaderY
+			b skip
+			
+			sycr2:
+			str r1,baseR2InvaderY
+			b skip
+			
+			sycr3:
+			str r1,baseR3InvaderY
+			b skip
+			
+		skip:			
+			bl drawRowOfInvader			
 			
 			cmp r0,#132
 			beq ifIOnRight
@@ -581,6 +604,229 @@ handleLasers:
 	str r0,laserX
 	str r1,laserY		
 	pop {lr,r0,r1,r5,r6}
+	RET
+	
+	
+	
+gameOver:
+	push {lr,r0-r3}
+	mov r3,#8
+	
+	mov r0,#51
+	mov r1,#42
+	
+	//G
+	bl drawFromXY
+	mov r0,#50
+	bl drawFromXY
+	mov r0,#49
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#46
+	bl drawFromXY
+	mov r0,#50
+	bl drawFromXY
+	mov r0,#51
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	
+	//A
+	mov r0,#53
+	mov r1,#46
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#42
+	bl drawFromXY
+	mov r0,#54
+	bl drawFromXY
+	mov r0,#55
+	bl drawFromXY
+	mov r1,#42
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#46
+	bl drawFromXY
+	mov r0,#54
+	mov r1,#44
+	bl drawFromXY
+	
+	//M
+	mov r0,#57
+	mov r1,#46
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#42
+	bl drawFromXY
+	mov r0,#59
+	mov r1,#46
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#42
+	bl drawFromXY
+	mov r0,#58
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	
+	//E1
+	mov r0,#63 
+	mov r1,#42
+	bl drawFromXY
+	mov r0,#62
+	bl drawFromXY
+	mov r0,#61
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#46
+	bl drawFromXY
+	mov r0,#62
+	bl drawFromXY
+	mov r0,#63
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r0,#62
+	bl drawFromXY
+	
+	//O
+	mov r0,#67
+	mov r1,#42
+	bl drawFromXY
+	mov r0,#68
+	bl drawFromXY
+	mov r0,#69
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#46
+	bl drawFromXY
+	mov r0,#68
+	bl drawFromXY
+	mov r0,#67
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#46
+	bl drawFromXY
+	
+	
+	//V
+	mov r0,#71
+	mov r1,#42
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r0,#72
+	mov r1,#46
+	bl drawFromXY
+	mov r0,#73
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#42
+	bl drawFromXY
+	
+	//E2
+	mov r0,#77
+	mov r1,#42
+	bl drawFromXY
+	mov r0,#76
+	bl drawFromXY
+	mov r0,#75
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#46
+	bl drawFromXY
+	mov r0,#76
+	bl drawFromXY
+	mov r0,#77
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r0,#76
+	bl drawFromXY
+	
+	//R
+	mov r0,#79
+	mov r1,#46
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#42
+	bl drawFromXY
+	mov r0,#80
+	bl drawFromXY
+	mov r0,#81
+	bl drawFromXY
+	mov r1,#43
+	bl drawFromXY
+	mov r1,#44
+	bl drawFromXY
+	mov r0,#80
+	bl drawFromXY
+	mov r1,#45
+	bl drawFromXY
+	mov r0,#81
+	mov r1,#46
+	bl drawFromXY
+
+	pop {lr,r0-r3}
 	RET
 
 //given x in r0, y in r1 returns screen pos from r2 and then calls editPixel at that location on the screen	
