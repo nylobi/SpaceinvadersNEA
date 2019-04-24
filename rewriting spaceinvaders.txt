@@ -13,75 +13,38 @@ setUp:
 		
 
 //Enable all interrupts
-      //mov r0,#1
-      //strb r0,.InterruptRegister
-	  //mov r1,#1
-	  //strb r1,.InterruptRegister
+//      mov r0,#1
+//      strb r0,.InterruptRegister
+//	  mov r1,#1
+//	  strb r1,.InterruptRegister
 
-	//bl moveInvaders
-	//mov r0,r0				//no op , forces the screen to update
-		//b Main				//infinite loop to test if keyboard presses work 
+
 Main:
-	
-	bl drawRowOf23Invader
-	halt
 	bl moveRow
 	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-	halt
-	bl moveRow
-
+		b Main				//infinite loop to test if keyboard presses work 
 
 halt
 
 handleClockInterrupt:
-	push {lr,r9,r10}
-	
-		ldr r9,interruptCounter
+	push {lr,r9-r12}
+
+		ldr r9,interruptSCounter
 		add r9,r9,#1
-		str r9,interruptCounter
+		
+		str r9,interruptSCounter
 		ldr r10,shipMove
 		
+		ldr r11,interruptICounter
+		add r11,r11,#1				//counter
+		
+		str r11,interruptICounter
+
+		checkMoveInvaders:
+		cmp r11,#10
+		bne checkMoveShip
+		bl moveRow
+
 		checkMoveShip:
 		cmp r9,#8
 		bne endClockInt
@@ -90,17 +53,23 @@ handleClockInterrupt:
 		bne endClockInt
 		bl moveShip
 		
-		
+	
 		resetIntCount:
 		mov r9,#0
+		
+		resetICount:
+		mov r11,#0
 	
 	endClockInt:
 		cmp r9,#8
 		beq resetIntCount
+		cmp r11,#10
+		beq resetICount
 			
 		bl handleLasers	
-		str r9,interruptCounter
-	pop {lr,r9,r10}
+		str r9,interruptSCounter
+		str r11,interruptICounter
+	pop {lr,r9-r12}
 	RFE
 	
 
@@ -133,11 +102,11 @@ handleKeyPress:
 	str r10,shipMove
 		
 	checkForSpace:
-	cmp r12,#32
+	cmp r12,#32		//spacebar
 	bne exit
 	mov r5,#1					//r5 is changed but isnt restored, r12 would be fine
-	str r5,existingLaser
-	bl handleLasers
+	str r5,fireLaser
+	
 	
 	exit:
 	pop {lr,r5,r10,r11,r12}
@@ -211,7 +180,7 @@ drawShip:
 clearShip:					
 	push {lr,r0-r3}
 
-		mov r3,#0			//white, back colour
+		mov r3,#0			//white, background colour
 		bl drawFromXY
 		
 		add r0,r0,#1
@@ -223,7 +192,7 @@ clearShip:
 		sub r1,r1,#1
 		bl drawFromXY	
 	
-	pop {lr,r0-r3}
+	pop {lr,r0-r3} 
 	RET
 	
 //given x in r0 and y in r1 draws a white pixel at that location (white is the background colour)	
@@ -246,8 +215,9 @@ mov r11,#invaderRow23ArmsUp
         mov r12,#0    //row
 		mov r9,#1			//the mask
 			
-		ldr r0,baseR2InvaderX
-		ldr r1,baseR2InvaderY
+		ldr r0,baseInvaderX
+		ldr r1,baseInvaderY
+
 					
 		loopDSI:
 			ldrb r10,[r11 + r12]		//only gets 8 bits 
@@ -269,23 +239,55 @@ mov r11,#invaderRow23ArmsUp
 							mov r9,#1
 							add r12,r12,#1
 							add r1,r1,#1
-							ldr r0,baseR2InvaderX
+							ldr r0,baseInvaderX
 							cmp r12,#8
 							beq exitDSI												
 			b loopDSI			
 		exitDSI:
-		ldr r0,storedR2InvaderX
-		str r0,baseR2InvaderX
+		ldr r0,storedInvaderX
+		str r0,baseInvaderX
 		mov r0,r0		//no op
 
 	pop {lr,r0-r2,r8-r12}
 	RET
+
+
 	
 //given x in r0 and y in r1 (the starting position) will draw a row of space invaders given a width in invaderRowWidth
-drawRowOf23Invader:				
-	push {lr,r3,r10}
+drawRowOfInvader:				
+	push {lr,r3,r4,r10}
+	
+		ldr r10,invaderRowWidth	
+		ldr r4,invaderFlag
+		
+		cmp r4,#0		//row 1
+		beq dr1
+	
+		cmp r4,#1		//row 2
+		beq dr2
+		
+		cmp r4,#2		//row 3
+		beq dr3
+		
+		dr1:		
+		ldr r0,baseR1InvaderX
+		ldr r1,baseR1InvaderY
+		b storeGeneric
+		
+		dr2:	
 		ldr r0,baseR2InvaderX
-		ldr r10,invaderRowWidth
+		ldr r1,baseR2InvaderY
+		b storeGeneric
+		
+		dr3:		
+		ldr r0,baseR3InvaderX
+		ldr r1,baseR3InvaderY
+		
+		
+		storeGeneric:
+		str r0,baseInvaderX
+		str r1,baseInvaderY
+		
 		
 		loopRow:
 			mov r3,#55
@@ -293,39 +295,77 @@ drawRowOf23Invader:
 		
 			add r0,r0,#12			//spacing between invaders
 			sub r10,r10,#1
-			str r0,baseR2InvaderX
+			str r0,baseInvaderX
 			cmp r10,#0
 			bne loopRow
-		ldr r0,baseR2InvaderX
-		ldr r10,invaderRowWidth
-	pop {lr,r3,r10}
+			
+		ldr r0,baseInvaderX
+		
+		ldr r10,invaderRowWidth	
+		
+//-------------------------------------
+		
+	drawRowEnd:
+		str r4,invaderFlag
+		
+	pop {lr,r3,r4,r10}
 	RET
 	
 //given x in r0 and y in r1 (the starting position) will draw a row of space invaders given a width in invaderRowWidth
-clearRowOf23Invader:				
-	push {lr,r3,r10}
-		ldr r0,storedR2InvaderX
-		str r0,baseR2InvaderX
-		ldr r10,invaderRowWidth
+clearRowOfInvader:				
+	push {lr,r3,r4,r10}
+	
+		ldr r10,invaderRowWidth	
+		ldr r4,invaderFlag
 		
-		loopClearRow:	
-			mov r3,#0
+		cmp r4,#0		//row 1
+		beq cr1
+	
+		cmp r4,#1		//row 2
+		beq cr2
+		
+		cmp r4,#2		//row 3
+		beq cr3
+		
+		cr1:		
+		ldr r0,baseR1InvaderX
+		ldr r1,baseR1InvaderY
+		b cStoreGeneric
+		
+		cr2:		
+		ldr r0,baseR2InvaderX
+		ldr r1,baseR2InvaderY
+		b cStoreGeneric
+		
+		cr3:		
+		ldr r0,baseR3InvaderX
+		ldr r1,baseR3InvaderY		
+		
+		cStoreGeneric:
+		str r0,baseInvaderX
+		str r1,baseInvaderY		
+		
+		loopClearRow:
+			mov r3,#20
 			bl editR23Invader
 		
 			add r0,r0,#12			//spacing between invaders
 			sub r10,r10,#1
-			str r0,baseR2InvaderX
+			str r0,baseInvaderX
 			cmp r10,#0
 			bne loopClearRow
-			
-		ldr r0,baseR2InvaderX
+		ldr r0,baseInvaderX
 		ldr r10,invaderRowWidth
-	pop {lr,r3,r10}
-	RET
+		
+	clearRowEnd:
+		str r4,invaderFlag
+		
+	pop {lr,r3,r4,r10}
+	RET	
 
 //r7 = invader direction (0 left, 1 down, 2 right)
 moveRow:
-		push {lr,r0,r1,r4-r7,r10}
+		push {lr,r0,r1,r4-r8,r10}
 		
 		mov r6,#0
 		add r6,r6,#1
@@ -335,10 +375,11 @@ moveRow:
 		ldr r4,screenLeftEdge
 		ldr r5,screenRightEdge
 		
-		bl clearRowOf23Invader
-		
-		ldr r0,storedR2InvaderX
-		ldr r1,baseR2InvaderY
+		halt
+		bl clearRowOfInvader
+		halt
+		ldr r0,storedInvaderX
+		ldr r1,baseInvaderY
 		
 		checkIRightEdge:
 			cmp r0,#24
@@ -364,41 +405,85 @@ moveRow:
 		
 		
 		moveRowDown:
-			add r1,r1,#2
-			str r1,baseR2InvaderY
-			ldr r0,storedR2InvaderX
-			str r0,baseR2InvaderX
-			bl drawRowOf23Invader
+			add r1,r1,#2				//moves the space invader down
+			str r1,baseInvaderY
+			ldr r0,storedInvaderX
+			str r0,baseInvaderX
+			bl drawRowOfInvader
+			
 			
 			cmp r0,#132
-			mov r7,#0
-			str r7,invaderDirection
-			bl clearRowOf23Invader
-			mov r0,#24
-			b moveRowLeft
-		
-		moveRowRight: 
+			beq ifIOnRight
+			
+			cmp r0,#108		
+			beq ifIOnLeft
+			
+			b endMoveRow
+			
+			ifIOnRight:
+				mov r7,#0
+				str r7,invaderDirection
+				bl clearRowOfInvader
+				mov r0,#24
+				b moveRowLeft
+			
+			ifIOnLeft:
+				mov r7,#2
+				str r7,invaderDirection
+				bl clearRowOfInvader
+				mov r0,#0
+				b moveRowRight
+			
+		moveRowRight:
+			str r0,storedInvaderX
 			add r0,r0,#2
-			str r0,baseR2InvaderX
-			str r0,storedR2InvaderX
-			bl drawRowOf23Invader
+			str r0,baseInvaderX
+
+			bl drawRowOfInvader
 			b endMoveRow
 			
 		moveRowLeft:
 			sub r0,r0,#2
-			str r0,baseR2InvaderX
-			str r0,storedR2InvaderX
-			bl drawRowOf23Invader
+			str r0,baseInvaderX
+			str r0,storedInvaderX
+			bl drawRowOfInvader
 			b endMoveRow
 				
 		endMoveRow:
 		
-	
-		pop {lr,r0,r1,r4-r7,r10}
+			ldr r8,invaderFlag
+			ldr r0,storedInvaderX
+			
+			cmp r8,#0
+			beq mr1
+			
+			cmp r8,#1
+			beq mr2
+			
+			cmp r8,#2
+			beq mr3
+			
+			mr1:			
+				str r0,baseR1InvaderX				
+				mov r8,#1
+				b endMoveRow2
+			mr2:
+				str r0,baseR2InvaderX
+				mov r8,#2
+				b endMoveRow2
+			mr3:
+				str r0,baseR3InvaderX
+				mov r8,#0
+				b endMoveRow2
+		
+		endMoveRow2:
+			str r8,invaderFlag
+			
+		pop {lr,r0,r1,r4-r8,r10}
 		RET
 	
+	
 //when space pressed, then it shoots a laser starting above the ship and will keep going to the top then a new laser will be able to be fired.
-
 drawLaser:					
 	push {lr,r0-r3}
 	
@@ -409,24 +494,27 @@ drawLaser:
 	RET	
 	
 handleLasers:
-	push {lr,r0,r1,r5}
+	push {lr,r0,r1,r5,r6}
 	
 		ldr r5,existingLaser
-
+		ldr r6,fireLaser
+				
+		
+		cmp r6,#0
+		beq checkForLaser
+		
+		cmp r5,#0
+		beq initialFire
+		
 		
 		checkForLaser:
-			cmp r5,#0
-			beq hLExit
-			
-			cmp r5,#1
-			beq initialFire
-			
-			cmp r5,#2
-			beq moveLaser
-			
-		b hLExit
+		cmp r5,#1
+		beq moveLaser
 				
+		b hLExit
+		
 		initialFire:
+		
 			ldr r0,shipX
 			ldr r1,shipY
 
@@ -436,7 +524,8 @@ handleLasers:
 			sub r1,r1,#1
 			bl drawLaser
 			
-			mov r5,#2
+			mov r5,#1
+			mov r6,#0
 			
 		b hLExit
 		
@@ -450,13 +539,15 @@ handleLasers:
 			
 			cmp r1,#0
 			bne hLExit
+			bl clearpixel
 			mov r5,#0
 
 	hLExit:
 	str r5,existingLaser
+	str r6,fireLaser
 	str r0,laserX
 	str r1,laserY		
-	pop {lr,r0,r1,r5}
+	pop {lr,r0,r1,r5,r6}
 	RET
 
 //given x in r0, y in r1 returns screen pos from r2 and then calls editPixel at that location on the screen	
@@ -502,17 +593,49 @@ laserY:
 	.word 1
 	
 existingLaser:
-	.word 1
+	.word 0
+	
+invaderFlag:
+	.word 0
+
+fireLaser:
+	.word 0
+	
+baseInvaderX:		//generic X coordinate
+	.word 0
+baseInvaderY:		//generic Y coord
+	.word 0
+storedInvaderX:
+	.word 4
+
+baseR1InvaderX:
+	.word 4
+		
+storedR1InvaderX:
+	.word 4
+	
+baseR1InvaderY:
+	.word 4	
 	
 	
 baseR2InvaderX:
-	.word 8
+	.word 4
 		
 storedR2InvaderX:
-	.word 8
+	.word 4
 	
 baseR2InvaderY:
-	.word 8
+	.word 14
+	
+	
+baseR3InvaderX:
+	.word 4
+		
+storedR3InvaderX:
+	.word 4
+	
+baseR3InvaderY:
+	.word 24
 	
 invaderRowWidth:
 	.word 9
@@ -532,7 +655,10 @@ screenLeftEdge:
 screenRightEdge:
 	.word 127
 	
-interruptCounter:
+interruptSCounter:
+	.word 0
+	
+interruptICounter:
 	.word 0
 	
 invaderRow23ArmsUp:
